@@ -1,0 +1,4 @@
+# The worker itself uses only the Python standard library.
+# Optional second-pass engine for low-confidence pages (large download; CPU works, GPU faster):
+# paddleocr>=3.0
+# paddlepaddle>=3.0
