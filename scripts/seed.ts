@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { Client } from "pg";
+import { makeClient, type ScriptClient } from "./pg-client";
 import { hashPassword } from "better-auth/crypto";
 import { classifyDocument } from "../src/lib/ocr/text-quality";
 import { CLASSIFICATIONS, OFFICES, PUBLIC_SAMPLES, RETENTION, SYNTHETIC, USERS } from "./seed-data";
@@ -14,7 +14,8 @@ config({ path: [".env.local", ".env"], quiet: true });
 const PII_TYPES = ["saln", "service_card", "appointment", "oath_of_office", "assumption_certificate", "pds", "exam_masterlist", "copi"];
 const PERSON_KEYS = ["declarant", "employee", "appointee", "affiant", "subject"];
 
-const db = new Client({ connectionString: process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL });
+const DB_URL = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "";
+let db: ScriptClient;
 let seq = 0;
 
 function due(date: string, r: (typeof RETENTION)[number] | undefined) {
@@ -77,6 +78,7 @@ function scannedPages(file: string, n: number) {
 
 async function main() {
   const reset = process.argv.includes("--reset");
+  db = await makeClient(DB_URL);
   await db.connect();
   if (reset) {
     if (process.env.NODE_ENV === "production" && !process.argv.includes("--force")) throw new Error("Refusing to reset in production");
@@ -90,7 +92,7 @@ async function main() {
 }
 
 async function main2(connected = false) {
-  if (!connected) { Object.assign(db, new Client({ connectionString: process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL })); await db.connect(); }
+  if (!connected) { db = await makeClient(DB_URL); await db.connect(); }
   const { rows: existing } = await db.query("SELECT count(*)::int AS n FROM records");
   if (existing[0].n > 0) { console.log(`Database already has ${existing[0].n} records – skipping (use --reset).`); await db.end(); return; }
 

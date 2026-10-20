@@ -2,14 +2,14 @@
 import { config } from "dotenv";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Client } from "pg";
+import { makeClient } from "./pg-client";
 
 config({ path: [".env.local", ".env"], quiet: true });
 
 async function main() {
   const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL (or DATABASE_URL_UNPOOLED) is required");
-  const client = new Client({ connectionString: url });
+  const client = await makeClient(url);
   await client.connect();
   await client.query(`CREATE TABLE IF NOT EXISTS _rms_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`);
   const dir = join(process.cwd(), "db", "migrations");

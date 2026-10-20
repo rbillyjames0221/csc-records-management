@@ -73,9 +73,9 @@ Scripts:
 | `DATABASE_URL` | yes | Pooled connection string, used at runtime |
 | `DATABASE_URL_UNPOOLED` | recommended | Direct connection, used for migrations and bulk loads |
 | `AUTH_SECRET` | yes | ≥ 32 random bytes |
-| `STORAGE_DRIVER` | yes | Set to `blob` on Vercel (the local disk is ephemeral) |
+| `STORAGE_DRIVER` | optional | Auto-selects `blob` when `BLOB_READ_WRITE_TOKEN` is set (Vercel's disk is ephemeral) |
 | `BLOB_READ_WRITE_TOKEN` | yes (blob) | From the private Blob store |
-| `WORKER_TOKEN` | for OCR worker | Shared secret, `openssl rand -hex 32` |
+| `WORKER_TOKEN` | for OCR worker | Shared secret, `openssl rand -hex 32`. If it is unset, the worker API rejects every call |
 | `BETTER_AUTH_URL` | optional | Defaults to the production domain (`VERCEL_PROJECT_PRODUCTION_URL`) |
 | `OCR_REVIEW_THRESHOLD` | optional | Default 80 |
 | `REQUIRE_2FA_ROLES` | optional | e.g. `admin,official,records_officer` |
@@ -86,6 +86,7 @@ Scripts:
    DATABASE_URL_UNPOOLED="postgres://…" npm run db:migrate
    DATABASE_URL_UNPOOLED="postgres://…" SEED_DEMO_PASSWORD='…' npm run db:seed   # optional SAMPLE data
    ```
+   If outbound port 5432 is blocked on your network, add `PG_TRANSPORT=websocket` to run the scripts through Neon's serverless driver over WSS/443.
 6. Deploy. The build is a standard `next build`. `prebuild` copies the pdf.js and tesseract.js assets into `public/vendor`.
 
 Data residency: RA 10173 personnel data (201 files, SALN, cases) should live on CSC-controlled
